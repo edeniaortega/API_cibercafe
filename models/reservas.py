@@ -8,6 +8,11 @@ class reserva(BaseModel):
         description="El ID autoincrementable de la reserva"   
     )
 
+    id_cliente: Optional[int] = Field(
+        default=None,
+        description="El ID del cliente"
+    )
+
     id_computadora: Optional[int] = Field(
         default=None,
         description="El ID de la computadora"
@@ -17,3 +22,6 @@ class reserva(BaseModel):
         default=None,
         description="El ID de la factura"
     )
+
+    
+    

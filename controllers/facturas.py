@@ -2,24 +2,22 @@ import json
 import logging
 
 from fastapi import HTTPException
-from models.clientes import cliente
+from models.facturas import factura
 
 from utils.database import execute_query_json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def get_one( id: int ) -> cliente:
+async def get_one() -> list[factura]:
 
     selectscript = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [academics].[clientes]
+            ,[id_cliente]
+            ,[fecha]
+            ,[total]
+        FROM [negocio].[factura]
     """
-
     params = [id]
     result_dict=[]
     try:
@@ -32,18 +30,16 @@ async def get_one( id: int ) -> cliente:
             raise HTTPException(status_code=404, detail=f"student not found")
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
+    
 
-
-
-async def get_all() -> list[cliente]:
+async def get_all() -> list[factura]:
 
     selectscript = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [academics].[clientes]
+            ,[id_cliente]
+            ,[fecha]
+            ,[total]
+        FROM [negocio].[factura]
     """
 
     result_dict=[]
@@ -55,9 +51,9 @@ async def get_all() -> list[cliente]:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
 
 
-async def delete_cliente( id: int) -> str:
+async def delete_factura( id: int) -> str:
     deletescript = """
-        DELETE FROM [negocio].[clientes]
+        DELETE FROM [negocio].[factura]
         WHERE [id] = ?;
     """
     params = [id];
@@ -67,39 +63,38 @@ async def delete_cliente( id: int) -> str:
         return "DELETED"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
-    
 
-async def update_cliente(cliente: cliente) -> cliente:
-    
-    dict = cliente.model_dump(exclude_none=True)
+
+async def update_factura (factura: factura) -> factura:
+    dict = factura.model_dump(exclude_none=True)
 
     keys = [ k for k in dict.keys() ]
     keys.remove('id')
     variables = " =?, ".join(keys)+" = ?"
 
     updatescript = f"""
-        UPDATE [negocio].[clientes]
+        UPDATE [negocio].[factura]
         SET {variables}
         WHERE [id] = ?;
     """
     params = [ dict[v] for v in keys ]
-    params.append( cliente.id )
+    params.append( factura.id )
 
-    update_result = None
+    update_results = None
     try:
-        update_result = await execute_query_json( updatescript, params, needs_commit=True )
+        insert_result = await execute_query_json(updatescript, params, needs_commit=True)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
+        raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
+    
     sqlfind: str = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [negocio].[clientes]
-        WHERE email = ?;
+            ,[id_cliente]
+            ,[fecha]
+            ,[total]
+        FROM [negocio].[factura]
+        WHERE [id] = SCOPE_IDENTITY();
     """
-    params = [cliente.email]
+    params = [factura.id]
 
     result_dict = []
     try: 
@@ -115,17 +110,16 @@ async def update_cliente(cliente: cliente) -> cliente:
 
 
 
-async def create_cliente( cliente: cliente ) -> cliente:
-    
+async def create_factura (factura: factura) -> factura:
     sqlscript: str = """
-        INSERT INTO [negocio].[clientes] ([nombre],[apellido],[email],[telefono])
-        VALUES(?, ?, ?, ?);
+        INSERT INTO [negocio].[factura] ([id_cliente],[fecha],[total])
+        VALUES(?, ?, ?)
     """
+
     params= [
-        cliente.nombre
-        , cliente.apellido
-        , cliente.email
-        , cliente.telefono
+        factura.id_cliente
+        , factura.fecha
+        , factura.total
     ]
 
     insert_result = None
@@ -136,14 +130,13 @@ async def create_cliente( cliente: cliente ) -> cliente:
     
     sqlfind: str = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [negocio].[clientes]
-        WHERE email = ?;
+            ,[id_cliente]
+            ,[fecha]
+            ,[total]
+        FROM [negocio].[factura]
+        WHERE [id] = SCOPE_IDENTITY();
     """
-    params = [cliente.email]
+    params = [factura.id]
 
     result_dict = []
     try: 
@@ -156,9 +149,3 @@ async def create_cliente( cliente: cliente ) -> cliente:
             return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
-
-
-
-
-
-

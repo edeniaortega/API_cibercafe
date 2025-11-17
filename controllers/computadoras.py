@@ -2,24 +2,21 @@ import json
 import logging
 
 from fastapi import HTTPException
-from models.clientes import cliente
+from models.computadoras import computadora
 
 from utils.database import execute_query_json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def get_one( id: int ) -> cliente:
+async def get_one() -> list[computadora]:
 
     selectscript = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [academics].[clientes]
+            ,[numero_pc]
+            ,[estado]
+        FROM [negocio].[computadoras]
     """
-
     params = [id]
     result_dict=[]
     try:
@@ -34,16 +31,13 @@ async def get_one( id: int ) -> cliente:
         raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
 
 
-
-async def get_all() -> list[cliente]:
+async def get_all() -> list[computadora]:
 
     selectscript = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [academics].[clientes]
+            ,[numero_pc]
+            ,[estado]
+        FROM [negocio].[computadoras]
     """
 
     result_dict=[]
@@ -55,9 +49,9 @@ async def get_all() -> list[cliente]:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
 
 
-async def delete_cliente( id: int) -> str:
+async def delete_computadora( id: int) -> str:
     deletescript = """
-        DELETE FROM [negocio].[clientes]
+        DELETE FROM [negocio].[computadoras]
         WHERE [id] = ?;
     """
     params = [id];
@@ -67,39 +61,37 @@ async def delete_cliente( id: int) -> str:
         return "DELETED"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
-    
 
-async def update_cliente(cliente: cliente) -> cliente:
-    
-    dict = cliente.model_dump(exclude_none=True)
+
+async def update_computadora(computadora: computadora) -> computadora:
+    dict = computadora.model_dump(exclude_none=True)
 
     keys = [ k for k in dict.keys() ]
     keys.remove('id')
     variables = " =?, ".join(keys)+" = ?"
 
     updatescript = f"""
-        UPDATE [negocio].[clientes]
+        UPDATE [negocio].[computadoras]
         SET {variables}
         WHERE [id] = ?;
     """
     params = [ dict[v] for v in keys ]
-    params.append( cliente.id )
+    params.append( computadora.id )
 
     update_result = None
     try:
         update_result = await execute_query_json( updatescript, params, needs_commit=True )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
+    
     sqlfind: str = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [negocio].[clientes]
-        WHERE email = ?;
+            ,[numero_pc]
+            ,[estado]
+        FROM [negocio].[computadoras]
+        where [numero_pc]=?
     """
-    params = [cliente.email]
+    params = [computadora.numero_pc]
 
     result_dict = []
     try: 
@@ -115,20 +107,30 @@ async def update_cliente(cliente: cliente) -> cliente:
 
 
 
-async def create_cliente( cliente: cliente ) -> cliente:
-    
+
+
+
+
+
+
+
+
+
+
+
+async def create_computadora(computadora: computadora) -> computadora:
     sqlscript: str = """
-        INSERT INTO [negocio].[clientes] ([nombre],[apellido],[email],[telefono])
-        VALUES(?, ?, ?, ?);
+        INSERT INTO [negocio].[computadoras] ([numero_pc],[estado])
+        VALUES (?, ?);
     """
-    params= [
-        cliente.nombre
-        , cliente.apellido
-        , cliente.email
-        , cliente.telefono
+
+    params=[
+        computadora.numero_pc
+        , computadora.estado
     ]
 
     insert_result = None
+
     try:
         insert_result = await execute_query_json(sqlscript, params, needs_commit=True)
     except Exception as e:
@@ -136,14 +138,12 @@ async def create_cliente( cliente: cliente ) -> cliente:
     
     sqlfind: str = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [negocio].[clientes]
-        WHERE email = ?;
+            ,[numero_pc]
+            ,[estado]
+        FROM [negocio].[computadoras]
+        where [numero_pc]=?
     """
-    params = [cliente.email]
+    params = [computadora.numero_pc]
 
     result_dict = []
     try: 
@@ -156,9 +156,6 @@ async def create_cliente( cliente: cliente ) -> cliente:
             return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
-
-
-
 
 
 

@@ -2,48 +2,21 @@ import json
 import logging
 
 from fastapi import HTTPException
-from models.clientes import cliente
+from models.reservas import reserva
 
 from utils.database import execute_query_json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def get_one( id: int ) -> cliente:
+async def get_all() -> list[reserva]:
 
     selectscript = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [academics].[clientes]
-    """
-
-    params = [id]
-    result_dict=[]
-    try:
-        result = await execute_query_json(selectscript, params=params)
-        result_dict = json.loads(result)
-
-        if len(result_dict) > 0:
-            return result_dict[0]
-        else:
-            raise HTTPException(status_code=404, detail=f"student not found")
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
-
-
-
-async def get_all() -> list[cliente]:
-
-    selectscript = """
-        SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [academics].[clientes]
+            ,[id_cliente]
+            ,[id_computadora]
+            ,[id_factura]
+        FROM [negocio].[reservas]
     """
 
     result_dict=[]
@@ -55,9 +28,9 @@ async def get_all() -> list[cliente]:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
 
 
-async def delete_cliente( id: int) -> str:
+async def delete_reserva( id: int) -> str:
     deletescript = """
-        DELETE FROM [negocio].[clientes]
+        DELETE FROM [negocio].[reservas]
         WHERE [id] = ?;
     """
     params = [id];
@@ -67,39 +40,39 @@ async def delete_cliente( id: int) -> str:
         return "DELETED"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
-    
 
-async def update_cliente(cliente: cliente) -> cliente:
-    
-    dict = cliente.model_dump(exclude_none=True)
+
+async def update_reserva (reserva: reserva) -> reserva:
+    dict = reserva.model_dump(exclude_none=True)
 
     keys = [ k for k in dict.keys() ]
     keys.remove('id')
     variables = " =?, ".join(keys)+" = ?"
 
     updatescript = f"""
-        UPDATE [negocio].[clientes]
+        UPDATE [negocio].[reservas]
         SET {variables}
         WHERE [id] = ?;
     """
     params = [ dict[v] for v in keys ]
-    params.append( cliente.id )
+    params.append( reserva.id )
 
-    update_result = None
+    update_results = None
     try:
-        update_result = await execute_query_json( updatescript, params, needs_commit=True )
+        insert_result = await execute_query_json(updatescript, params, needs_commit=True)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
-    sqlfind: str = """
+        raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
+    
+    sqlfind = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [negocio].[clientes]
-        WHERE email = ?;
+            ,[id_cliente]
+            ,[id_computadora]
+            ,[id_factura]
+        FROM [negocio].[reservas]
+        Where [id] = SCOPE_IDENTITY();
     """
-    params = [cliente.email]
+
+    params = [reserva.id]
 
     result_dict = []
     try: 
@@ -115,17 +88,18 @@ async def update_cliente(cliente: cliente) -> cliente:
 
 
 
-async def create_cliente( cliente: cliente ) -> cliente:
-    
-    sqlscript: str = """
-        INSERT INTO [negocio].[clientes] ([nombre],[apellido],[email],[telefono])
-        VALUES(?, ?, ?, ?);
+
+async def create_reserva (reserva: reserva) -> reserva:
+
+    sqlscript = """
+        INSERT INTO [negocio].[reservas] ([id_cliente],[id_computadora],[id_factura])
+        VALUES (?, ?, ?);
     """
+
     params= [
-        cliente.nombre
-        , cliente.apellido
-        , cliente.email
-        , cliente.telefono
+        reserva.id_cliente
+        , reserva.id_computadora
+        , reserva.id_factura
     ]
 
     insert_result = None
@@ -134,16 +108,16 @@ async def create_cliente( cliente: cliente ) -> cliente:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
     
-    sqlfind: str = """
+    sqlfind = """
         SELECT [id]
-            ,[nombre]
-            ,[apellido]
-            ,[email]
-            ,[telefono]
-        FROM [negocio].[clientes]
-        WHERE email = ?;
+            ,[id_cliente]
+            ,[id_computadora]
+            ,[id_factura]
+        FROM [negocio].[reservas]
+        Where [id] = SCOPE_IDENTITY();
     """
-    params = [cliente.email]
+
+    params = [reserva.id]
 
     result_dict = []
     try: 
@@ -156,9 +130,5 @@ async def create_cliente( cliente: cliente ) -> cliente:
             return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
-
-
-
-
 
 
