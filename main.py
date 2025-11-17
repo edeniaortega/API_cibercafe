@@ -1,14 +1,13 @@
-from typing import Union
 from fastapi import FastAPI
-from utils.database import execute_query_json
-import json
+from routes.clientes import router_cliente
 
 app = FastAPI()
+
+app.include_router(router_cliente)
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return{"item_id": item_id, "q": q}
+
+
