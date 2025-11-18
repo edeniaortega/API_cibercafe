@@ -26,7 +26,7 @@ async def get_one() -> list[computadora]:
         if len(result_dict) > 0:
             return result_dict[0]
         else:
-            raise HTTPException(status_code=404, detail=f"student not found")
+            raise HTTPException(status_code=404, detail=f"computadora no encontrada")
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
 
@@ -104,20 +104,7 @@ async def update_computadora(computadora: computadora) -> computadora:
             return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
 async def create_computadora(computadora: computadora) -> computadora:
     sqlscript: str = """
         INSERT INTO [negocio].[computadoras] ([numero_pc],[estado])

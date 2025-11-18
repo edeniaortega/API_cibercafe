@@ -3,6 +3,7 @@ import logging
 
 from fastapi import HTTPException
 from models.facturas import factura
+from models.detalle_facturas import detalle_factura
 
 from utils.database import execute_query_json
 
@@ -27,7 +28,7 @@ async def get_one() -> list[factura]:
         if len(result_dict) > 0:
             return result_dict[0]
         else:
-            raise HTTPException(status_code=404, detail=f"student not found")
+            raise HTTPException(status_code=404, detail=f"factura no encontrada")
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
     
@@ -138,6 +139,7 @@ async def create_factura (factura: factura) -> factura:
     """
     params = [factura.id]
 
+
     result_dict = []
     try: 
         result = await execute_query_json(sqlfind, params=params)
@@ -149,3 +151,111 @@ async def create_factura (factura: factura) -> factura:
             return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
+    
+
+    #--Relación con Factura-Detalle_Factura
+
+async def get_all_detalles(factura_id: int) -> list[dict]:
+    select_script = """
+        SELECT
+            d.id,
+            d.id_factura,
+            d.id_servicio,
+            d.cantidad,
+            d.subtotal,
+            s.descripcion AS servicio_descripcion,
+            s.precio_unitario
+        FROM[negocio].[detalle_factura] AS d
+        INNER JOIN [negocio].[servicios] AS s
+        ON d.id_servicio = s.id
+        WHERE d.id_factura = ?
+    """
+
+    params = [factura_id]
+
+    try:
+        result = await execute_query_json(select_script, params=params)
+        dict_result = json.loads(result)
+        if len(dict_result) == 0:
+            raise HTTPException(status_code=404, detail="No se encontro ningun detalle de la factura")
+
+        return dict_result
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
+    
+
+async def get_one_detalle(id_factura: int, id_detalle_facturas: int) -> dict:
+    select_script = """
+        SELECT
+            d.id AS id,
+            d.id_factura,
+            d.id_servicio,
+            d.cantidad,
+            d.subtotal,
+            s.descripcion AS servicio_descripcion,
+            s.precio_unitario
+        FROM [negocio].[detalle_factura] AS d
+        INNER JOIN [negocio].[servicios] AS s 
+        ON d.id_servicio = s.id
+        WHERE 
+            d.id_factura = ? 
+            AND d.id = ?
+    """
+
+    params = [id_factura, id_detalle_facturas]
+
+    try:
+        result = await execute_query_json(select_script, params=params)
+        dict_result = json.loads(result)
+        if len(dict_result) == 0:
+            raise HTTPException(status_code=404, detail="No se encontraron reservas para el cliente")
+
+        return dict_result[0]
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
+
+
+async def add_detalle_factura(id: int, detalle: detalle_factura):
+
+    insert_script = """
+        INSERT INTO negocio.detalle_factura
+            (id_factura, id_servicio, cantidad, precio_unitario, subtotal)
+        VALUES (?, ?, ?, ?, ?);
+    """
+
+    insert_params = [
+        id,
+        detalle.id_servicio,
+        detalle.cantidad,
+        detalle.precio_unitario,
+        detalle.subtotal
+    ]
+
+    try:
+        await execute_query_json(insert_script, insert_params, needs_commit=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error (insert): {str(e)}")
+
+    select_script = """
+        SELECT 
+            df.id_factura,
+            df.id_servicio,
+            s.descripcion AS servicio,
+            df.cantidad,
+            df.precio_unitario,
+            df.subtotal
+        FROM negocio.detalle_factura df
+        INNER JOIN negocio.servicios s
+            ON df.id_servicio = s.id
+        WHERE df.id_factura = ?
+        AND df.id_servicio = ?
+        AND df.subtotal = ?;
+    """
+
+    select_params = [id, detalle_factura.id_servicio, detalle_factura.subtotal]
+
+    try:
+        result = await execute_query_json(select_script, select_params)
+        return json.loads(result)[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error (select): {str(e)}")

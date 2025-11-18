@@ -6,6 +6,8 @@ from controllers.clientes import(
     , delete_cliente
     , get_all
     , get_one
+    , get_all_reservas
+    ,get_one_reserva
 )
 
 router_cliente = APIRouter(prefix="/clientes")
@@ -34,4 +36,14 @@ async def eliminar_un_cliente( id: int ):
 @router_cliente.get("/{id}", tags=["Clientes"], status_code=status.HTTP_200_OK)
 async def Obtener_un_estudiante( id: int ):
     result: cliente =  await get_one(id)
+    return result
+
+@router_cliente.get("/{id}/reservas", tags=["Clientes(Relación)"], status_code=status.HTTP_200_OK)
+async def Obtener_todas_las_reservas_de_un_cliente( id: int ):
+    result = await get_all_reservas(id)
+    return result
+
+@router_cliente.get("/{id}/reservas/{id_reserva}", tags=["Clientes(Relación)"], status_code=status.HTTP_200_OK)
+async def obtener_una_reserva_del_cliente( id: int, id_reserva: int ):
+    result = await get_one_reserva(id, id_reserva)
     return result

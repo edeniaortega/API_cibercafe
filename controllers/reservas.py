@@ -9,6 +9,43 @@ from utils.database import execute_query_json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+async def get_one( id: int ) -> reserva:
+
+    selectscript = """
+       SELECT
+            r.id AS id,
+            r.id_cliente,
+            c.nombre AS nombre_cliente,
+            r.id_computadora,
+            r.id_factura,
+            f.fecha,
+            df.id_servicio,
+            s.precio_unitario,
+            df.cantidad,
+            df.subtotal
+        FROM [negocio].[reservas] AS r
+        JOIN [negocio].[clientes] AS c ON r.id_cliente = c.id
+        JOIN [negocio].[factura] AS f ON r.id_factura = f.id
+        JOIN [negocio].[detalle_factura] AS df ON f.id = df.id_factura
+        JOIN [negocio].[servicios] AS s ON df.id_servicio = s.id
+        WHERE r.id = ?;
+    """
+
+    params = [id]
+    result_dict=[]
+    try:
+        result = await execute_query_json(selectscript, params=params)
+        result_dict = json.loads(result)
+
+        if len(result_dict) > 0:
+            return result_dict[0]
+        else:
+            raise HTTPException(status_code=404, detail=f"reserva no encontrada")
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
+
+
+
 async def get_all() -> list[reserva]:
 
     selectscript = """

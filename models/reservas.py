@@ -1,4 +1,5 @@
 from pydantic import BaseModel,Field, field_validator
+from datetime import date, datetime, time, timedelta
 from typing import Optional
 import re
 
@@ -23,5 +24,3 @@ class reserva(BaseModel):
         description="El ID de la factura"
     )
 
-    
-    

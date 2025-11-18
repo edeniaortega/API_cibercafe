@@ -17,7 +17,7 @@ async def get_one( id: int ) -> cliente:
             ,[apellido]
             ,[email]
             ,[telefono]
-        FROM [academics].[clientes]
+        FROM [negocio].[clientes]
     """
 
     params = [id]
@@ -29,7 +29,7 @@ async def get_one( id: int ) -> cliente:
         if len(result_dict) > 0:
             return result_dict[0]
         else:
-            raise HTTPException(status_code=404, detail=f"student not found")
+            raise HTTPException(status_code=404, detail=f"cliente no encontrado")
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
 
@@ -43,7 +43,7 @@ async def get_all() -> list[cliente]:
             ,[apellido]
             ,[email]
             ,[telefono]
-        FROM [academics].[clientes]
+        FROM [negocio].[clientes]
     """
 
     result_dict=[]
@@ -156,6 +156,71 @@ async def create_cliente( cliente: cliente ) -> cliente:
             return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
+    
+#----Interaccion clientes con reservas----
+async def get_all_reservas(id_cliente: int) -> list[dict]:
+   
+    select_script = """
+        SELECT
+            r.id AS id,
+            r.id_computadora,
+            r.id_factura,
+            r.id_cliente,
+            c.nombre AS nombre_cliente,
+            c.apellido AS apellido_cliente,
+            c.email AS email_cliente
+        FROM [negocio].[reservas] AS r
+        INNER JOIN [negocio].[clientes] AS c 
+        ON r.id_cliente = c.id
+        WHERE r.id_cliente = ?
+    """
+
+    params = [id_cliente]
+
+    try:
+        result = await execute_query_json(select_script, params=params)
+        dict_result = json.loads(result)
+        if len(dict_result) == 0:
+            raise HTTPException(status_code=404, detail="No se encontraron reservas para el cliente")
+
+        return dict_result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
+
+async def get_one_reserva(id_cliente: int, id_reserva: int) -> dict:
+    select_script = """
+        SELECT
+            r.id AS id,
+            r.id_computadora,
+            r.id_factura,
+            r.id_cliente,
+            c.nombre AS nombre_cliente,
+            c.apellido AS apellido_cliente,
+            c.email AS email_cliente
+        FROM [negocio].[reservas] AS r
+        INNER JOIN [negocio].[clientes] AS c 
+        ON r.id_cliente = c.id
+        WHERE 
+            r.id_cliente = ? 
+            AND r.id = ?
+            
+    """
+
+    params = [id_cliente, id_reserva]
+
+    try:
+        result = await execute_query_json(select_script, params=params)
+        dict_result = json.loads(result)
+        if len(dict_result) == 0:
+            raise HTTPException(status_code=404, detail="No se encontraron reservas para el cliente")
+
+        return dict_result[0]
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
+
+
 
 
 
