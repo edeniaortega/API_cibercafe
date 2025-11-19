@@ -1,0 +1,58 @@
+@echo off
+REM ######################################################################
+REM # Release helper (Windows CMD) — build, tag and push to ACR
+REM # - Staging build shows the "Staging" dashboards
+REM # - Production build hides "Staging" by default
+REM #
+REM # Before running, set VERSION if needed.
+REM ######################################################################
+
+REM --- Config ---
+set VERSION=0.0.1
+set ACR_PRD=devciberacr
+set IMAGE_LOCAL=api-cibercafe-unah
+set REPO_PROD=%ACR_PRD%.azurecr.io/api-cibercafe-unah
+
+echo ============================
+echo BUILDING PRODUCTION IMAGE...
+echo ============================
+
+REM ----------------------------------------
+REM 2) PRODUCTION: build locally and push
+REM ----------------------------------------
+
+REM Build PROD (staging hidden by default)
+docker buildx build ^
+    --platform linux/amd64 ^
+    -t %IMAGE_LOCAL%:prod ^
+    . --load
+
+echo ============================
+echo RUN LOCAL (optional)
+echo ============================
+
+REM Stop and remove existing container if exists
+docker rm -f api-cibercafe-unah
+
+docker run --env-file .env -p 8000:8000 -d --name api-cibercafe-unah %IMAGE_LOCAL%:prod
+
+echo ============================
+echo LOGIN ACR + AZURE
+echo ============================
+
+az login
+az acr login --name %ACR_PRD%
+
+echo ============================
+echo TAGGING & PUSHING
+echo ============================
+
+docker tag %IMAGE_LOCAL%:prod %REPO_PROD%:%VERSION%
+docker tag %IMAGE_LOCAL%:prod %REPO_PROD%:latest
+
+docker push %REPO_PROD%:%VERSION%
+docker push %REPO_PROD%:latest
+
+echo ============================
+echo DONE!
+echo ============================

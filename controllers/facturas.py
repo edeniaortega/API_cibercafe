@@ -10,7 +10,7 @@ from utils.database import execute_query_json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def get_one() -> list[factura]:
+async def get_one(id: int) -> dict:
 
     selectscript = """
         SELECT [id]
@@ -18,6 +18,7 @@ async def get_one() -> list[factura]:
             ,[fecha]
             ,[total]
         FROM [negocio].[factura]
+        where [id] = ?;
     """
     params = [id]
     result_dict=[]
@@ -66,11 +67,14 @@ async def delete_factura( id: int) -> str:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
 
 
-async def update_factura (factura: factura) -> factura:
-    dict = factura.model_dump(exclude_none=True)
+async def update_factura(factura: factura) -> dict:
+    
+    data_dict = factura.model_dump(exclude_none=True)
+    keys = [ k for k in data_dict.keys() if k != 'id']
+    
+    if not keys:
+        raise HTTPException(status_code=400, detail="No se envio un campo para actualizar")
 
-    keys = [ k for k in dict.keys() ]
-    keys.remove('id')
     variables = " =?, ".join(keys)+" = ?"
 
     updatescript = f"""
@@ -78,36 +82,38 @@ async def update_factura (factura: factura) -> factura:
         SET {variables}
         WHERE [id] = ?;
     """
-    params = [ dict[v] for v in keys ]
+    
+    params = [ data_dict[v] for v in keys ]
+    
     params.append( factura.id )
 
-    update_results = None
+    update_result = None
     try:
-        insert_result = await execute_query_json(updatescript, params, needs_commit=True)
+        update_result = await execute_query_json( updatescript, params, needs_commit=True )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
-    
+        raise HTTPException(status_code=500, detail=f"Database error during update: { str(e) }")
+        
     sqlfind: str = """
         SELECT [id]
             ,[id_cliente]
             ,[fecha]
             ,[total]
-        FROM [negocio].[factura]
-        WHERE [id] = SCOPE_IDENTITY();
+        FROM [negocio].[factura] 
+        WHERE id = ?;
     """
-    params = [factura.id]
+    params_find = [factura.id] 
 
     result_dict = []
     try: 
-        result = await execute_query_json(sqlfind, params=params)
+        result = await execute_query_json(sqlfind, params=params_find)
         result_dict = json.loads(result)
 
         if len(result_dict)> 0:
             return result_dict[0]
         else:
-            return []
+            return {"message": "Factura actualizada pero no se encuentra el historial."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: { str(e) }")
+        raise HTTPException(status_code=500, detail=f"Database error during select: { str(e) }")
 
 
 
@@ -137,7 +143,7 @@ async def create_factura (factura: factura) -> factura:
         FROM [negocio].[factura]
         WHERE [id] = SCOPE_IDENTITY();
     """
-    params = [factura.id]
+    params = []
 
 
     result_dict = []
@@ -215,19 +221,18 @@ async def get_one_detalle(id_factura: int, id_detalle_facturas: int) -> dict:
         raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
 
 
-async def add_detalle_factura(id: int, detalle: detalle_factura):
+async def add_detalle_factura(id_factura: int, detalle: detalle_factura):
 
     insert_script = """
         INSERT INTO negocio.detalle_factura
-            (id_factura, id_servicio, cantidad, precio_unitario, subtotal)
-        VALUES (?, ?, ?, ?, ?);
+            (id_factura, id_servicio, cantidad, subtotal)
+        VALUES (?, ?, ?, ?);
     """
 
     insert_params = [
-        id,
+        id_factura, 
         detalle.id_servicio,
         detalle.cantidad,
-        detalle.precio_unitario,
         detalle.subtotal
     ]
 
@@ -242,20 +247,25 @@ async def add_detalle_factura(id: int, detalle: detalle_factura):
             df.id_servicio,
             s.descripcion AS servicio,
             df.cantidad,
-            df.precio_unitario,
             df.subtotal
         FROM negocio.detalle_factura df
         INNER JOIN negocio.servicios s
             ON df.id_servicio = s.id
         WHERE df.id_factura = ?
-        AND df.id_servicio = ?
-        AND df.subtotal = ?;
+        AND df.id_servicio = ?;
     """
 
-    select_params = [id, detalle_factura.id_servicio, detalle_factura.subtotal]
+    select_params = [id_factura, detalle.id_servicio] 
 
     try:
         result = await execute_query_json(select_script, select_params)
-        return json.loads(result)[0]
+        result_dict = json.loads(result)
+        
+        if result_dict:
+            return result_dict[0]
+        else:
+            raise HTTPException(status_code=500, detail="Detail inserted, but record retrieval failed.")
+            
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error (select): {str(e)}")
+    

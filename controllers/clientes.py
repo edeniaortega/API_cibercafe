@@ -3,6 +3,7 @@ import logging
 
 from fastapi import HTTPException
 from models.clientes import cliente
+from models.reservas import reserva
 
 from utils.database import execute_query_json
 
@@ -18,6 +19,7 @@ async def get_one( id: int ) -> cliente:
             ,[email]
             ,[telefono]
         FROM [negocio].[clientes]
+        where [id] = ?;
     """
 
     params = [id]
@@ -69,19 +71,20 @@ async def delete_cliente( id: int) -> str:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
     
 
-async def update_cliente(cliente: cliente) -> cliente:
-    
+async def update_cliente( cliente: cliente ) -> cliente:
+
     dict = cliente.model_dump(exclude_none=True)
 
-    keys = [ k for k in dict.keys() ]
+    keys = [ k for k in  dict.keys() ]
     keys.remove('id')
-    variables = " =?, ".join(keys)+" = ?"
+    variables = " = ?, ".join(keys)+" = ?"
 
     updatescript = f"""
         UPDATE [negocio].[clientes]
         SET {variables}
         WHERE [id] = ?;
     """
+
     params = [ dict[v] for v in keys ]
     params.append( cliente.id )
 
@@ -97,16 +100,17 @@ async def update_cliente(cliente: cliente) -> cliente:
             ,[email]
             ,[telefono]
         FROM [negocio].[clientes]
-        WHERE email = ?;
+        WHERE id = ?;
     """
-    params = [cliente.email]
 
-    result_dict = []
-    try: 
+    params = [cliente.id]
+
+    result_dict=[]
+    try:
         result = await execute_query_json(sqlfind, params=params)
         result_dict = json.loads(result)
 
-        if len(result_dict)> 0:
+        if len(result_dict) > 0:
             return result_dict[0]
         else:
             return []
@@ -219,11 +223,4 @@ async def get_one_reserva(id_cliente: int, id_reserva: int) -> dict:
         return dict_result[0]
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Database error: { str(e) }")
-
-
-
-
-
-
-
-
+    

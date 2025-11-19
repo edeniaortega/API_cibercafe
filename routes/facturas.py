@@ -51,6 +51,6 @@ async def obtener_el_detalle_de_una_factura( id: int, id_detalle_facturas: int )
     return result
 
 @router_factura.post("/{id}/detalle_facturas", tags=["Facturas(Relación)"],status_code=status.HTTP_201_CREATED)
-async def crear_un_detalle_a_una_factura(id:int):
-    result = await add_detalle_factura(id)
+async def crear_un_detalle_a_una_factura(id:int, detalle: detalle_factura):
+    result = await add_detalle_factura(id, detalle)
     return result

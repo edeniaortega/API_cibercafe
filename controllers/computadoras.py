@@ -9,13 +9,14 @@ from utils.database import execute_query_json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def get_one() -> list[computadora]:
+async def get_one(id: int) -> dict:
 
     selectscript = """
         SELECT [id]
             ,[numero_pc]
             ,[estado]
         FROM [negocio].[computadoras]
+        where [id] = ?;
     """
     params = [id]
     result_dict=[]

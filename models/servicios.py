@@ -8,14 +8,16 @@ class servicio(BaseModel):
         description="El ID autoincremental del servicio"
     )
 
-    descripcion: Optional[str] = Field(
+    descripcion: Optional[str] = Field (
+        default=None,
         description="Descripcion del servicio que se ofrece",
         pattern=r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' -]+$",
-        default=None
+        examples=["fotocopias", "impresion a color"]
+        
     )
 
     precio_unitario: Optional[float] = Field(
         description="precio por unidad o por hora",
         ge=0,
-        examples=[15.00, 2.00]
+        examples=[2.00, 15.00]
     )

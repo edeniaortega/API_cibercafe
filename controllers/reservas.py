@@ -128,9 +128,9 @@ async def update_reserva (reserva: reserva) -> reserva:
 
 async def create_reserva (reserva: reserva) -> reserva:
 
-    sqlscript = """
+    sqlscript: str = """
         INSERT INTO [negocio].[reservas] ([id_cliente],[id_computadora],[id_factura])
-        VALUES (?, ?, ?);
+        VALUES (?, ?, ?)
     """
 
     params= [
@@ -145,13 +145,13 @@ async def create_reserva (reserva: reserva) -> reserva:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: { str(e)}")
     
-    sqlfind = """
+    sqlfind: str = """
         SELECT [id]
             ,[id_cliente]
             ,[id_computadora]
             ,[id_factura]
         FROM [negocio].[reservas]
-        Where [id] = SCOPE_IDENTITY();
+        Where [id] = ?;
     """
 
     params = [reserva.id]

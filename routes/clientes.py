@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, status
 from models.clientes import cliente
+from models.reservas import reserva
 from controllers.clientes import(
     create_cliente
     , update_cliente
@@ -34,7 +35,7 @@ async def eliminar_un_cliente( id: int ):
     return status
 
 @router_cliente.get("/{id}", tags=["Clientes"], status_code=status.HTTP_200_OK)
-async def Obtener_un_estudiante( id: int ):
+async def Obtener_un_cliente( id: int ):
     result: cliente =  await get_one(id)
     return result
 
@@ -47,3 +48,4 @@ async def Obtener_todas_las_reservas_de_un_cliente( id: int ):
 async def obtener_una_reserva_del_cliente( id: int, id_reserva: int ):
     result = await get_one_reserva(id, id_reserva)
     return result
+
