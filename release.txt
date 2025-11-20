@@ -8,7 +8,7 @@ REM # Before running, set VERSION if needed.
 REM ######################################################################
 
 REM --- Config ---
-set VERSION=0.0.1
+set VERSION=0.1.0
 set ACR_PRD=devciberacr
 set IMAGE_LOCAL=api-cibercafe-unah
 set REPO_PROD=%ACR_PRD%.azurecr.io/api-cibercafe-unah
